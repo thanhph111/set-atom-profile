@@ -1,0 +1,8 @@
+autocomplete-python
+kite
+
+linter
+linter-flake8
+linter-ui-default
+
+python-black
