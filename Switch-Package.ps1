@@ -142,28 +142,28 @@ function Switch-Package {
 
   "Processing..."
 
-  # Enable/disable these packages
-  # foreach ($Package in $PackagesToEnable) {
-  #   ${Package}
-  #   if ($Package -in $EnabledPackages) {
-  #     Write-Host "$Tab Already enabled`n" -ForegroundColor $ColorForAlreadyEnabled
-  #   }
-  #   else {
-  #     # apm enable $Package 2>&1 | Out-Null
-  #     Write-Host "$Tab Enabled`n" -ForegroundColor $ColorForEnabled
-  #   }
-  # }
-  #
-  # foreach ($Package in $PackagesToDisable) {
-  #   ${Package}
-  #   if ($Package -in $DisabledPackages) {
-  #     Write-Host "$Tab Already disabled`n" -ForegroundColor $ColorForAlreadyDisabled
-  #   }
-  #   else {
-  #     # apm disable $Package 2>&1 | Out-Null
-  #     Write-Host "$Tab Disabled`n" -ForegroundColor $ColorForDisabled
-  #   }
-  # }
+  Enable/disable these packages
+  foreach ($Package in $PackagesToEnable) {
+    ${Package}
+    if ($Package -in $EnabledPackages) {
+      Write-Host "$Tab Already enabled`n" -ForegroundColor $ColorForAlreadyEnabled
+    }
+    else {
+      apm enable $Package 2>&1 | Out-Null
+      Write-Host "$Tab Enabled`n" -ForegroundColor $ColorForEnabled
+    }
+  }
+
+  foreach ($Package in $PackagesToDisable) {
+    ${Package}
+    if ($Package -in $DisabledPackages) {
+      Write-Host "$Tab Already disabled`n" -ForegroundColor $ColorForAlreadyDisabled
+    }
+    else {
+      apm disable $Package 2>&1 | Out-Null
+      Write-Host "$Tab Disabled`n" -ForegroundColor $ColorForDisabled
+    }
+  }
 
   Write-Table -Table $Output
 }
