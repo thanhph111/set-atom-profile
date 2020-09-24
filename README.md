@@ -49,8 +49,8 @@ PS> .\switchpack.ps1 python
 ## To-do list
 
 - [x] Reduce running time by checking before execution.
+- [x] Tab completion profile name.
 - [ ] Warning if wrong packages received from profile.
 - [ ] Allow to mix multiple profile in one run.
 - [ ] Check current profile (maybe you want to start with single profile first).
-- [ ] Using OOP.
 - [ ] Finish this README.

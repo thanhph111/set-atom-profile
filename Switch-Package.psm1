@@ -1,3 +1,6 @@
+$Path = $PSScriptRoot + "\profile\"
+
+
 function Write-Table {
     param(
         [Parameter(Mandatory = $true)]
@@ -20,6 +23,17 @@ function Write-Table {
         $FinalArray += $FinalObj
     }
     $FinalArray
+}
+
+
+function GetProfiles {
+    param(
+        $commandName,
+        $parameterName,
+        $wordToComplete
+    )
+    $profiles = (Get-ChildItem $Path).name | Where-Object { $_ -like "$wordToComplete*" }
+    return $profiles
 }
 
 
@@ -67,7 +81,6 @@ function Switch-Package {
     .LINK
     <script directory>\README.md
     #>
-
     param(
         [Parameter(Mandatory = $true, HelpMessage = "Profile's name containing list of packages.")]
         [string]$ProfileName,
@@ -75,7 +88,6 @@ function Switch-Package {
         [switch]$Strict = $false
     )
 
-    $Path = $PSScriptRoot + "\profile\"
     $Tab = " " * 3
     $ColorForEnabled = "Green"
     $ColorForAlreadyEnabled = "DarkGreen"
@@ -119,7 +131,7 @@ function Switch-Package {
         "Already Disable" = @()
         "New Disable" = @()
     }
-    # Enable/disable these packages
+
     foreach ($Package in $PackagesToEnable) {
         if ($Package -in $EnabledPackages) {
             $Output["Already Enable"] += "$Package"
@@ -142,7 +154,7 @@ function Switch-Package {
 
     "Processing..."
 
-    Enable/disable these packages
+    # Enable/disable these packages
     foreach ($Package in $PackagesToEnable) {
         ${Package}
         if ($Package -in $EnabledPackages) {
@@ -167,3 +179,6 @@ function Switch-Package {
 
     Write-Table -Table $Output
 }
+
+
+Register-ArgumentCompleter -CommandName Switch-Package -ParameterName ProfileName -ScriptBlock $function:GetProfiles
