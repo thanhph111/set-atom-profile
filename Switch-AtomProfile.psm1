@@ -37,7 +37,7 @@ function GetProfiles {
 }
 
 
-function Switch-Package {
+function Switch-AtomProfile {
     <#
     .SYNOPSIS
     Set specific Atom profile.
@@ -67,15 +67,15 @@ function Switch-Package {
     .NOTES
     Author: thanhph111
     Last Edit: 2020-07-19
-    Version 1.0 - initial release of Switch-Package
+    Version 1.0 - initial release of Switch-AtomProfile
     Version 1.1 - add Strict parameters
 
     .EXAMPLE
-    PS> Switch-Package -ProfileName necessary
+    PS> Switch-AtomProfile -ProfileName necessary
     The example above enable all packages in `necessary` file
 
     .EXAMPLE
-    PS> Switch-Package -ProfileName null
+    PS> Switch-AtomProfile -ProfileName null
     The example above disable all installed packages.
 
     .LINK
@@ -181,4 +181,4 @@ function Switch-Package {
 }
 
 
-Register-ArgumentCompleter -CommandName Switch-Package -ParameterName ProfileName -ScriptBlock $function:GetProfiles
+Register-ArgumentCompleter -CommandName Switch-AtomProfile -ParameterName ProfileName -ScriptBlock $function:GetProfiles

@@ -1,4 +1,4 @@
-# `Switch-Package.ps1`
+# `Switch-AtomProfile.ps1`
 
 ## Introduction
 
@@ -6,19 +6,19 @@ This powershell script used to set needed packages for specific profile in [atom
 
 ## Usage
 
-1. Set location at folder `switchpack`
+1. Set location at folder `switch-atom-profile`
 2. Run following command. It will enable all packages in `profile\necessary` and `profile\<profile>` file. The rest packages will be disabled.
 
 * Running on script:
 
 ``` shell
-PS> .\switchpack.ps1 <profile>
+PS> .\Switch-AtomProfile.psm1 <profile>
 ```
 
 * Running on module:
 
 ```shell
-PS> Switch-Package -ProfileName <profile>
+PS> Switch-AtomProfile -ProfileName <profile>
 ```
 
 ## Customization
@@ -43,7 +43,7 @@ python-black
 - Command will be:
 
 ``` shell
-PS> .\switchpack.ps1 python
+PS> .\Switch-AtomProfile.psm1 python
 ```
 
 ## To-do list
