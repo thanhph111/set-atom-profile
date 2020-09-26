@@ -22,6 +22,7 @@ function Write-Table {
         }
         $FinalArray += $FinalObj
     }
+    Write-Output "Result:"
     Write-Output $FinalArray
 }
 
@@ -89,7 +90,7 @@ function Switch-AtomProfile {
         [switch]$Strict = $false,
         [Parameter(HelpMessage = "Choose the way you like for output messages.")]
         [ValidateSet("Everything", "BriefOnly", "Nothing")]
-        [string]$OutputMode = $Everything
+        [string]$OutputMode = "Everything"
     )
 
     $Tab = " " * 3
@@ -125,7 +126,7 @@ function Switch-AtomProfile {
     # Verify packages
     foreach ($Package in $PackagesToEnable) {
         if ($Package -notin $AllPackages) {
-            Write-Warning "$Package is not found, ignored. Check the name again.`n"
+            Write-Warning "$Package is not found, ignored. Check the name again."
             $PackagesToEnable = @($PackagesToEnable | Where-Object { $_ -ne $Package })
         }
     }
@@ -133,7 +134,7 @@ function Switch-AtomProfile {
     # Get packages to disable
     $PackagesToDisable = $AllPackages | Where-Object { $_ -notin $PackagesToEnable }
 
-    if ($OutputMode -ne "Nothing") {
+    if ($OutputMode -eq "BriefOnly") {
         Write-Output "Processing...`n"
     }
 
@@ -159,35 +160,35 @@ function Switch-AtomProfile {
         }
     }
 
-    # Write log
-    if ($OutputMode -eq "Everything") {
-        foreach ($Package in $PackagesToEnable) {
+    # Enable/disable these packages
+    foreach ($Package in $PackagesToEnable) {
+        if ($OutputMode -eq "Everything") {
             Write-Output $Package
-            if ($Package -in $EnabledPackages) {
+        }
+        if ($Package -in $EnabledPackages) {
+            if ($OutputMode -eq "Everything") {
                 Write-Host "$Tab Already enabled`n" -ForegroundColor $ColorForAlreadyEnabled
-            } else {
+            }
+        } else {
+            apm enable $Package 2>&1 | Out-Null
+            if ($OutputMode -eq "Everything") {
                 Write-Host "$Tab Enabled`n" -ForegroundColor $ColorForEnabled
             }
         }
-        foreach ($Package in $PackagesToDisable) {
-            Write-Output $Package
-            if ($Package -in $DisabledPackages) {
-                Write-Host "$Tab Already disabled`n" -ForegroundColor $ColorForAlreadyDisabled
-            } else {
-                Write-Host "$Tab Disabled`n" -ForegroundColor $ColorForDisabled
-            }
-        }
-    }
-
-    # Enable/disable these packages
-    foreach ($Package in $PackagesToEnable) {
-        if ($Package -notin $EnabledPackages) {
-            apm enable $Package 2>&1 | Out-Null
-        }
     }
     foreach ($Package in $PackagesToDisable) {
-        if ($Package -notin $DisabledPackages) {
+        if ($OutputMode -eq "Everything") {
+            Write-Output $Package
+        }
+        if ($Package -in $DisabledPackages) {
+            if ($OutputMode -eq "Everything") {
+                Write-Host "$Tab Already disabled`n" -ForegroundColor $ColorForAlreadyDisabled
+            }
+        } else {
             apm disable $Package 2>&1 | Out-Null
+            if ($OutputMode -eq "Everything") {
+                Write-Host "$Tab Disabled`n" -ForegroundColor $ColorForDisabled
+            }
         }
     }
 
