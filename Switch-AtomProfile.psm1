@@ -1,4 +1,4 @@
-$Path = $PSScriptRoot + "\profile\"
+$Path = $PSScriptRoot + "\profiles\"
 
 
 function Write-Table {
@@ -9,7 +9,7 @@ function Write-Table {
 
     # Get the maximum item lenghth
     $ItemCounts = @()
-    Foreach ($item in $Table.values) {
+    foreach ($item in $Table.values) {
         $ItemCounts += $item.length
     }
     $MaxItemCount = ($ItemCounts | Measure-Object -Maximum).Maximum
@@ -22,7 +22,7 @@ function Write-Table {
         }
         $FinalArray += $FinalObj
     }
-    $FinalArray
+    Write-Output $FinalArray
 }
 
 
@@ -32,7 +32,7 @@ function GetProfiles {
         $parameterName,
         $wordToComplete
     )
-    $profiles = (Get-ChildItem $Path).name | Where-Object { $_ -like "$wordToComplete*" }
+    $profiles = (Get-ChildItem $Path).Name | Where-Object { $_ -like "$wordToComplete*" }
     return $profiles
 }
 
@@ -59,7 +59,7 @@ function Switch-AtomProfile {
 
     .INPUTS
     System.String
-            'null' or <profile>
+        'null' or <profile>
 
     .OUTPUTS
     None.
@@ -81,11 +81,15 @@ function Switch-AtomProfile {
     .LINK
     <script directory>\README.md
     #>
+
     param(
         [Parameter(Mandatory = $true, HelpMessage = "Profile's name containing list of packages.")]
         [string]$ProfileName,
         [Parameter(HelpMessage = "Strictly enable only packages in profile file.")]
-        [switch]$Strict = $false
+        [switch]$Strict = $false,
+        [Parameter(HelpMessage = "Choose the way you like for output messages.")]
+        [ValidateSet("Everything", "BriefOnly", "Nothing")]
+        [string]$OutputMode = $Everything
     )
 
     $Tab = " " * 3
@@ -96,88 +100,101 @@ function Switch-AtomProfile {
 
     # Get necessary packages
     $NecessaryPackages = Get-Content -Path ($Path + "necessary") | Where-Object { $_.trim() -ne "" }
+
     # Get all installed packages
-    # $AllPackages = apm list --bare --installed --packages --no-versions
     $EnabledPackages = apm list --bare --installed --packages --enabled --no-versions
     $DisabledPackages = apm list --bare --installed --packages --disabled --no-versions
     $AllPackages = $EnabledPackages + $DisabledPackages
 
-    # Check parameters
+    # Get packages to enable
     if ($ProfileName -eq "null") {
         $PackagesToEnable = ""
         "Disable all packages."
-    }
-    elseif ($ProfileName -eq "necessary") {
+    } elseif ($ProfileName -eq "necessary") {
         $PackagesToEnable = $NecessaryPackages
         "Enable all necessary packages."
-    }
-    elseif (!(Test-Path ($Path + $ProfileName) -PathType Leaf)) {
+    } elseif (!(Test-Path ($Path + $ProfileName) -PathType Leaf)) {
         "Profile '$ProfileName' not found in '$Path'."
         return
-    }
-    else {
+    } else {
         $ProfilePackages = Get-Content -Path ($Path + $ProfileName) | Where-Object { $_.trim() -ne "" }
         if ($Strict) { $PackagesToEnable = $ProfilePackages }
         else { $PackagesToEnable = $NecessaryPackages + $ProfilePackages }
     }
 
-    # Get packages disabled
-    $PackagesToDisable = $AllPackages | Where-Object { $_ -notin $PackagesToEnable }
-
-
-    $Output = [ordered]@{
-        "Already Enable" = @()
-        "New Enable" = @()
-        "Already Disable" = @()
-        "New Disable" = @()
+    # Verify packages
+    foreach ($Package in $PackagesToEnable) {
+        if ($Package -notin $AllPackages) {
+            Write-Warning "$Package is not found, ignored. Check the name again.`n"
+            $PackagesToEnable = @($PackagesToEnable | Where-Object { $_ -ne $Package })
+        }
     }
 
+    # Get packages to disable
+    $PackagesToDisable = $AllPackages | Where-Object { $_ -notin $PackagesToEnable }
+
+    if ($OutputMode -ne "Nothing") {
+        Write-Output "Processing...`n"
+    }
+
+    # Classify packages
+    $Output = [ordered]@{
+        "Already Enable"  = @()
+        "New Enable"      = @()
+        "Already Disable" = @()
+        "New Disable"     = @()
+    }
     foreach ($Package in $PackagesToEnable) {
         if ($Package -in $EnabledPackages) {
             $Output["Already Enable"] += "$Package"
-        }
-        else {
-            # apm enable $Package 2>&1 | Out-Null
+        } else {
             $Output["New Enable"] += "$Package"
         }
     }
-
     foreach ($Package in $PackagesToDisable) {
         if ($Package -in $DisabledPackages) {
             $Output["Already Disable"] += "$Package"
-        }
-        else {
-            # apm disable $Package 2>&1 | Out-Null
+        } else {
             $Output["New Disable"] += "$Package"
         }
     }
 
-    "Processing..."
+    # Write log
+    if ($OutputMode -eq "Everything") {
+        foreach ($Package in $PackagesToEnable) {
+            Write-Output $Package
+            if ($Package -in $EnabledPackages) {
+                Write-Host "$Tab Already enabled`n" -ForegroundColor $ColorForAlreadyEnabled
+            } else {
+                Write-Host "$Tab Enabled`n" -ForegroundColor $ColorForEnabled
+            }
+        }
+        foreach ($Package in $PackagesToDisable) {
+            Write-Output $Package
+            if ($Package -in $DisabledPackages) {
+                Write-Host "$Tab Already disabled`n" -ForegroundColor $ColorForAlreadyDisabled
+            } else {
+                Write-Host "$Tab Disabled`n" -ForegroundColor $ColorForDisabled
+            }
+        }
+    }
 
     # Enable/disable these packages
     foreach ($Package in $PackagesToEnable) {
-        ${Package}
-        if ($Package -in $EnabledPackages) {
-            Write-Host "$Tab Already enabled`n" -ForegroundColor $ColorForAlreadyEnabled
-        }
-        else {
+        if ($Package -notin $EnabledPackages) {
             apm enable $Package 2>&1 | Out-Null
-            Write-Host "$Tab Enabled`n" -ForegroundColor $ColorForEnabled
         }
     }
-
     foreach ($Package in $PackagesToDisable) {
-        ${Package}
-        if ($Package -in $DisabledPackages) {
-            Write-Host "$Tab Already disabled`n" -ForegroundColor $ColorForAlreadyDisabled
-        }
-        else {
+        if ($Package -notin $DisabledPackages) {
             apm disable $Package 2>&1 | Out-Null
-            Write-Host "$Tab Disabled`n" -ForegroundColor $ColorForDisabled
         }
     }
 
-    Write-Table -Table $Output
+    # Write brief table
+    if ($OutputMode -ne "Nothing") {
+        Write-Table -Table $Output
+    }
 }
 
 

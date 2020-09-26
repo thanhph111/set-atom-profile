@@ -50,7 +50,7 @@ PS> .\Switch-AtomProfile.psm1 python
 
 - [x] Reduce running time by checking before execution.
 - [x] Tab completion profile name.
-- [ ] Warning if wrong packages received from profile.
+- [x] Warning if wrong packages received from profile.
 - [ ] Allow to mix multiple profile in one run.
 - [ ] Check current profile (maybe you want to start with single profile first).
 - [ ] Finish this README.
