@@ -98,12 +98,13 @@ function Switch-AtomProfile {
     $AllPackages = $EnabledPackages + $DisabledPackages
 
     # Get packages to enable
+    $PackagesToEnable = @()
     if (($ProfileNames.Length -eq 1) -and ($ProfileNames -eq "Nothing")) {
         $PackagesToEnable = $null
-        Write-Output "Disable all packages."
+        Write-Output "Disable all packages.`n"
     } elseif (($ProfileNames.Length -eq 1) -and ($ProfileNames -eq "All")) {
         $PackagesToEnable = $AllPackages
-        Write-Output "Enable all packages."
+        Write-Output "Enable all packages.`n"
     } else {
         foreach ($ProfileName in $ProfileNames) {
             if (!(Test-Path ($Path + $ProfileName) -PathType Leaf)) {
