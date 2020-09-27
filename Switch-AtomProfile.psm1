@@ -1,4 +1,4 @@
-$Path = $PSScriptRoot + "\profiles\"
+$Path = $PSScriptRoot + "\Profiles\"
 
 
 function Write-Table {
@@ -44,39 +44,34 @@ function Switch-AtomProfile {
     Set specific Atom profile.
 
     .DESCRIPTION
-    User should reate a <profile> file containing list of expected packages to be enable in `profile`
+    User should reate a <profile> file containing list of expected packages to be enable in 'profile'
     folder (in script root folder).
-    The script will enable all packages in <profile> file and `necessary` file.
+    The script will enable all packages in <profile> file and 'necessary' file.
     All the remaining packages will be disabled.
 
-    .PARAMETER ProfileName
-    'null' or <profile> file containing list of packages.
+    .PARAMETER ProfileNames
+    'All', 'Nothing' or list of <profile> names.
 
-    .PARAMETER Strict
-    Only enable packages in profile file.
-
-    .PARAMETER SuppressOutput
-    Quite mode - suppress all output.
+    .PARAMETER OutputMode
+    'Everything', 'BriefOnly' or 'Nothing'.
 
     .INPUTS
     System.String
-        'null' or <profile>
+        'All', 'Nothing' or list of <profile> names.
 
     .OUTPUTS
     None.
 
     .NOTES
     Author: thanhph111
-    Last Edit: 2020-07-19
-    Version 1.0 - initial release of Switch-AtomProfile
-    Version 1.1 - add Strict parameters
+    Last Edit: 2020-09-28
 
     .EXAMPLE
-    PS> Switch-AtomProfile -ProfileName necessary
-    The example above enable all packages in `necessary` file
+    PS> Switch-AtomProfile -ProfileNames necessary, python
+    The example above enable all packages listed in 'necessary' and 'python' file.
 
     .EXAMPLE
-    PS> Switch-AtomProfile -ProfileName null
+    PS> Switch-AtomProfile -ProfileNames Nothing
     The example above disable all installed packages.
 
     .LINK
@@ -85,9 +80,7 @@ function Switch-AtomProfile {
 
     param(
         [Parameter(Mandatory = $true, HelpMessage = "Profile's name containing list of packages.")]
-        [string]$ProfileName,
-        [Parameter(HelpMessage = "Strictly enable only packages in profile file.")]
-        [switch]$Strict = $false,
+        [string[]]$ProfileNames,
         [Parameter(HelpMessage = "Choose the way you like for output messages.")]
         [ValidateSet("Everything", "BriefOnly", "Nothing")]
         [string]$OutputMode = "Everything"
@@ -99,28 +92,30 @@ function Switch-AtomProfile {
     $ColorForDisabled = "Red"
     $ColorForAlreadyDisabled = "DarkRed"
 
-    # Get necessary packages
-    $NecessaryPackages = Get-Content -Path ($Path + "necessary") | Where-Object { $_.trim() -ne "" }
-
     # Get all installed packages
     $EnabledPackages = apm list --bare --installed --packages --enabled --no-versions
     $DisabledPackages = apm list --bare --installed --packages --disabled --no-versions
     $AllPackages = $EnabledPackages + $DisabledPackages
 
     # Get packages to enable
-    if ($ProfileName -eq "null") {
-        $PackagesToEnable = ""
-        "Disable all packages."
-    } elseif ($ProfileName -eq "necessary") {
-        $PackagesToEnable = $NecessaryPackages
-        "Enable all necessary packages."
-    } elseif (!(Test-Path ($Path + $ProfileName) -PathType Leaf)) {
-        "Profile '$ProfileName' not found in '$Path'."
-        return
+    if (($ProfileNames.Length -eq 1) -and ($ProfileNames -eq "Nothing")) {
+        $PackagesToEnable = $null
+        Write-Output "Disable all packages."
+    } elseif (($ProfileNames.Length -eq 1) -and ($ProfileNames -eq "All")) {
+        $PackagesToEnable = $AllPackages
+        Write-Output "Enable all packages."
     } else {
-        $ProfilePackages = Get-Content -Path ($Path + $ProfileName) | Where-Object { $_.trim() -ne "" }
-        if ($Strict) { $PackagesToEnable = $ProfilePackages }
-        else { $PackagesToEnable = $NecessaryPackages + $ProfilePackages }
+        foreach ($ProfileName in $ProfileNames) {
+            if (!(Test-Path ($Path + $ProfileName) -PathType Leaf)) {
+                Write-Warning "Profile '$ProfileName' is not found in '$Path', ignored."
+            } else {
+                $PackagesToEnable += Get-Content -Path ($Path + $ProfileName) | Where-Object { $_.trim() -ne "" }
+            }
+        }
+        if (!($PackagesToEnable)) {
+            Write-Output "Nothing to process."
+            return
+        }
     }
 
     # Verify packages
@@ -199,4 +194,4 @@ function Switch-AtomProfile {
 }
 
 
-Register-ArgumentCompleter -CommandName Switch-AtomProfile -ParameterName ProfileName -ScriptBlock $function:GetProfiles
+Register-ArgumentCompleter -CommandName Switch-AtomProfile -ParameterName ProfileNames -ScriptBlock $function:GetProfiles
