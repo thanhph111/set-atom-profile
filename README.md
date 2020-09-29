@@ -52,5 +52,5 @@ PS> .\Switch-AtomProfile.psm1 python
 - [x] Tab completion profile name.
 - [x] Warning if wrong packages received from profile.
 - [x] Allow to mix multiple profile in one run.
-- [ ] Check current profile (maybe you want to start with single profile first).
+- [x] Check current profile (maybe you want to start with single profile first).
 - [ ] Finish this README.

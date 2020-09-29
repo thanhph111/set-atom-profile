@@ -38,6 +38,74 @@ function GetProfiles {
 }
 
 
+function Get-Subsets {
+    param(
+        [Parameter(Mandatory = $true)]
+        [array]$Elements
+    )
+    $Subsets = @()
+    for ($SubsetIndex = 1; $SubsetIndex -lt [math]::Pow(2, $Elements.length); $SubsetIndex++) {
+        $Subset = @()
+        for ($ElementIndex = 0; $ElementIndex -lt $Elements.length; $ElementIndex++) {
+            if (($SubsetIndex -band (1 -shl ($Elements.length - $ElementIndex - 1))) -ne 0) {
+                $Subset += $Elements[$ElementIndex]
+            }
+        }
+        $Subsets += , $Subset
+    }
+    return $Subsets | Group-Object -Property Length | ForEach-Object { $_.Group | Sort-Object }
+}
+
+
+function Get-AtomProfile {
+    $Subsets = Get-Subsets (GetProfiles)
+
+    $EnabledPackages = apm list --bare --installed --packages --enabled --no-versions
+    $DisabledPackages = apm list --bare --installed --packages --disabled --no-versions
+    $AllPackages = $EnabledPackages + $DisabledPackages
+
+    if (!($EnabledPackages)) {
+        Write-Output "Nothing"
+        return
+    }
+    if (!($DisabledPackages)) {
+        Write-Output "All"
+        return
+    }
+
+    foreach ($ProfileNames in $Subsets) {
+        $PackagesToEnable = @()
+        foreach ($ProfileName in $ProfileNames) {
+            $PackagesToEnable += Get-Content -Path ($Path + $ProfileName) | Where-Object { $_.trim() -ne "" }
+        }
+        $PackagesToDisable = $AllPackages | Where-Object { $_ -notin $PackagesToEnable }
+
+        $Output = [ordered]@{
+            "New Enable"  = @()
+            "New Disable" = @()
+        }
+        foreach ($Package in $PackagesToEnable) {
+            if ($Package -notin $EnabledPackages) {
+                $Output["New Enable"] += "$Package"
+            }
+        }
+        foreach ($Package in $PackagesToDisable) {
+            if ($Package -notin $DisabledPackages) {
+                $Output["New Disable"] += "$Package"
+            }
+        }
+
+        if (!($Output["New Enable"]) -and !($Output["New Disable"])) {
+            Write-Output ($ProfileNames -join " + ")
+            return
+        }
+    }
+
+    Write-Output "Cannot detect profile"
+    return
+}
+
+
 function Switch-AtomProfile {
     <#
     .SYNOPSIS
@@ -99,10 +167,10 @@ function Switch-AtomProfile {
 
     # Get packages to enable
     $PackagesToEnable = @()
-    if (($ProfileNames.Length -eq 1) -and ($ProfileNames -eq "Nothing")) {
+    if (($ProfileNames.length -eq 1) -and ($ProfileNames -eq "Nothing")) {
         $PackagesToEnable = $null
         Write-Output "Disable all packages.`n"
-    } elseif (($ProfileNames.Length -eq 1) -and ($ProfileNames -eq "All")) {
+    } elseif (($ProfileNames.length -eq 1) -and ($ProfileNames -eq "All")) {
         $PackagesToEnable = $AllPackages
         Write-Output "Enable all packages.`n"
     } else {
@@ -196,3 +264,5 @@ function Switch-AtomProfile {
 
 
 Register-ArgumentCompleter -CommandName Switch-AtomProfile -ParameterName ProfileNames -ScriptBlock $function:GetProfiles
+
+Export-ModuleMember -Function Get-AtomProfile, Switch-AtomProfile
