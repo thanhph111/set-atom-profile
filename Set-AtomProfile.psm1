@@ -1,5 +1,11 @@
 $Path = $PSScriptRoot + "\Profiles\"
 
+$Tab = " " * 3
+$ColorForNewEnabled = "Green"
+$ColorForAlreadyEnabled = "DarkGreen"
+$ColorForNewDisabled = "Red"
+$ColorForAlreadyDisabled = "DarkRed"
+
 
 function Write-Table {
     param(
@@ -33,8 +39,17 @@ function GetProfiles {
         $parameterName,
         $wordToComplete
     )
-    $profiles = (Get-ChildItem $Path).Name | Where-Object { $_ -like "$wordToComplete*" }
-    return $profiles
+    $ProfileName = (Get-ChildItem $Path).Name | Where-Object { $_ -like "$wordToComplete*" }
+    return $ProfileName
+}
+
+
+function Get-UniqueContent {
+    param(
+        $ProfileName
+    )
+    return Get-Content -Path ($Path + $ProfileName) |
+        ForEach-Object { $_.trim() } | Where-Object { $_ -ne "" } | Select-Object -Unique
 }
 
 
@@ -57,56 +72,72 @@ function Get-Subsets {
 }
 
 
-function Get-AtomProfile {
-    $Subsets = Get-Subsets (GetProfiles)
+function Get-AtomProfileStatus {
+    $ProfileNames = GetProfiles
 
+    # Create a hashtable of packages
+    $Packages = @{}
+    foreach ($ProfileName in $ProfileNames) {
+        $Packages.$ProfileName = Get-UniqueContent -ProfileName $ProfileName
+    }
+
+    # Get all combinations of the profiles
+    $Subsets = Get-Subsets ($ProfileNames)
+
+    # Get enabled and disabled packages
     $EnabledPackages = apm list --bare --installed --packages --enabled --no-versions
     $DisabledPackages = apm list --bare --installed --packages --disabled --no-versions
     $AllPackages = $EnabledPackages + $DisabledPackages
 
+    # Check if no profile is set
     if (!($EnabledPackages)) {
         Write-Output "Nothing"
         return
     }
+
+    # Check if all profiles are set
     if (!($DisabledPackages)) {
         Write-Output "All"
         return
     }
 
-    foreach ($ProfileNames in $Subsets) {
+    # Check if any combination is set
+    foreach ($Subset in $Subsets) {
         $PackagesToEnable = @()
-        foreach ($ProfileName in $ProfileNames) {
-            $PackagesToEnable += Get-Content -Path ($Path + $ProfileName) | Where-Object { $_.trim() -ne "" }
-        }
+        foreach ($ProfileName in $Subset) { $PackagesToEnable += $Packages.$ProfileName }
         $PackagesToDisable = $AllPackages | Where-Object { $_ -notin $PackagesToEnable }
 
-        $Output = [ordered]@{
-            "New Enable"  = @()
-            "New Disable" = @()
-        }
+        $NewEnablePackages = @()
+        $NewDisablePackages = @()
         foreach ($Package in $PackagesToEnable) {
             if ($Package -notin $EnabledPackages) {
-                $Output["New Enable"] += "$Package"
+                $NewEnablePackages += "$Package"
             }
         }
         foreach ($Package in $PackagesToDisable) {
             if ($Package -notin $DisabledPackages) {
-                $Output["New Disable"] += "$Package"
+                $NewDisablePackages += "$Package"
             }
         }
 
-        if (!($Output["New Enable"]) -and !($Output["New Disable"])) {
-            Write-Output ($ProfileNames -join " + ")
-            return
+        if (!$NewEnablePackages -and !$NewDisablePackages) {
+            $CurrentProfile = $Subset -join " + "
+            break
         }
     }
 
-    Write-Output "Cannot detect profile"
+    # Conclusion
+    if ($CurrentProfile) {
+        Write-Host "You are on " -NoNewline
+        Write-Host $CurrentProfile -ForegroundColor Green
+        return
+    }
+    Write-Host "You are on no profile set" -ForegroundColor Red
     return
 }
 
 
-function Switch-AtomProfile {
+function Set-AtomProfile {
     <#
     .SYNOPSIS
     Set specific Atom profile.
@@ -135,11 +166,11 @@ function Switch-AtomProfile {
     Last Edit: 2020-09-28
 
     .EXAMPLE
-    PS> Switch-AtomProfile -ProfileNames necessary, python
+    PS> Set-AtomProfile -ProfileNames necessary, python
     The example above enable all packages listed in 'necessary' and 'python' file.
 
     .EXAMPLE
-    PS> Switch-AtomProfile -ProfileNames Nothing
+    PS> Set-AtomProfile -ProfileNames Nothing
     The example above disable all installed packages.
 
     .LINK
@@ -153,12 +184,6 @@ function Switch-AtomProfile {
         [ValidateSet("Everything", "BriefOnly", "Nothing")]
         [string]$OutputMode = "Everything"
     )
-
-    $Tab = " " * 3
-    $ColorForEnabled = "Green"
-    $ColorForAlreadyEnabled = "DarkGreen"
-    $ColorForDisabled = "Red"
-    $ColorForAlreadyDisabled = "DarkRed"
 
     # Get all installed packages
     $EnabledPackages = apm list --bare --installed --packages --enabled --no-versions
@@ -178,7 +203,7 @@ function Switch-AtomProfile {
             if (!(Test-Path ($Path + $ProfileName) -PathType Leaf)) {
                 Write-Warning "Profile '$ProfileName' is not found in '$Path', ignored."
             } else {
-                $PackagesToEnable += Get-Content -Path ($Path + $ProfileName) | Where-Object { $_.trim() -ne "" }
+                $PackagesToEnable += Get-UniqueContent -ProfileName $ProfileName
             }
         }
         if (!($PackagesToEnable)) {
@@ -236,7 +261,7 @@ function Switch-AtomProfile {
         } else {
             apm enable $Package 2>&1 | Out-Null
             if ($OutputMode -eq "Everything") {
-                Write-Host "$Tab Enabled`n" -ForegroundColor $ColorForEnabled
+                Write-Host "$Tab Enabled`n" -ForegroundColor $ColorForNewEnabled
             }
         }
     }
@@ -251,7 +276,7 @@ function Switch-AtomProfile {
         } else {
             apm disable $Package 2>&1 | Out-Null
             if ($OutputMode -eq "Everything") {
-                Write-Host "$Tab Disabled`n" -ForegroundColor $ColorForDisabled
+                Write-Host "$Tab Disabled`n" -ForegroundColor $ColorForNewDisabled
             }
         }
     }
@@ -263,6 +288,6 @@ function Switch-AtomProfile {
 }
 
 
-Register-ArgumentCompleter -CommandName Switch-AtomProfile -ParameterName ProfileNames -ScriptBlock $function:GetProfiles
+Register-ArgumentCompleter -CommandName Set-AtomProfile -ParameterName ProfileNames -ScriptBlock $function:GetProfiles
 
-Export-ModuleMember -Function Get-AtomProfile, Switch-AtomProfile
+Export-ModuleMember -Function Get-AtomProfileStatus, Set-AtomProfile

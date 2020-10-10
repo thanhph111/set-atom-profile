@@ -1,4 +1,4 @@
-# `Switch-AtomProfile.ps1`
+# `Set-AtomProfile.ps1`
 
 ## Introduction
 
@@ -12,13 +12,13 @@ This powershell script used to set needed packages for specific profile in [atom
 * Running on script:
 
 ``` shell
-PS> .\Switch-AtomProfile.psm1 <profile>
+PS> .\Set-AtomProfile.psm1 <profile>
 ```
 
 * Running on module:
 
 ```shell
-PS> Switch-AtomProfile -ProfileName <profile>
+PS> Set-AtomProfile -ProfileName <profile>
 ```
 
 ## Customization
@@ -43,7 +43,7 @@ python-black
 - Command will be:
 
 ``` shell
-PS> .\Switch-AtomProfile.psm1 python
+PS> .\Set-AtomProfile.psm1 python
 ```
 
 ## To-do list
