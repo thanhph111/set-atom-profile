@@ -1,34 +1,66 @@
 # `Set-AtomProfile.ps1`
 
+
 ## Introduction
 
-This powershell script used to set needed packages for specific profile in [atom editor](http://atom.io/).
+A PowerShell script for switching between profiles in [atom editor](http://atom.io/).
+
 
 ## Usage
 
-1. Set location at folder `switch-atom-profile`
-2. Run following command. It will enable all packages in `profile\necessary` and `profile\<profile>` file. The rest packages will be disabled.
+### Step 1: Prepare profile files containing lists of packages.
 
-* Running on script:
+Create files in the `Profiles` folder containing packages separated by lines (blank lines are allowed).
 
-``` shell
-PS> .\Set-AtomProfile.psm1 <profile>
+### Step 2: Import module
+
+Import the module by using directly this command or put it in [a PowerShell profile](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_profiles).
+
+``` powershell
+PS> Import-Module Set-AtomProfile.psm1
 ```
 
-* Running on module:
+### Step 3: Run command
 
-```shell
-PS> Set-AtomProfile -ProfileName <profile>
+- `Set-AtomProfile`:
+
+``` powershell
+PS> Set-AtomProfile [-ProfileNames] <String[]> [[-OutputMode] {BriefOnly | Everything | Nothing}]
 ```
+The command will enable all packages in the profile files specified in the `ProfileNames` parameter. The rest of the installed packages will be disabled. Results will be printed in three modes: `BriefOnly` (final result only), `Everything` (process and final result) or `Nothing` (no messages).
 
-## Customization
+`ProfileNames` can take `All` or `Nothing` value.
 
-You can create a file in `profile` folder containing packages separated by lines (blank lines are allowed) and then run command with its name.
+- `Get-AtomProfileStatus`:
+
+```powershell
+PS> Get-AtomProfile
+```
+The command will show the current profile being set.
+
 
 ## Example
 
-- In file `profile\python`:
+In file `Profiles\necessary`:
 
+``` text
+custom-title
+title-bar-replacer
+
+file-icons
+tree-view-sort
+
+minimap
+minimap-highlight-selected
+highlight-selected
+
+platformio-ide-terminal
+atom-terminus
+
+split-diff
+```
+
+In file `Profiles\python`:
 ``` text
 autocomplete-python
 kite
@@ -40,17 +72,31 @@ linter-ui-default
 python-black
 ```
 
-- Command will be:
+``` powershell
+PS> Set-AtomProfile necessary, python BriefOnly
+Processing...
 
-``` shell
-PS> .\Set-AtomProfile.psm1 python
+Result:
+
+New Enable          New Disable         Already Disable    Already Enable
+----------          -----------         ---------------    --------------
+autocomplete-python language-powershell atom-beautify      custom-title
+kite                                    atom-ide-ui        title-bar-replacer
+linter                                  busy-signal        file-icons
+linter-flake8                           code-peek          tree-view-sort
+linter-ui-default                       copy-as-rtf        minimap
+python-black                            goto               minimap-highlight-selected
+                                        ide-python         highlight-selected
+                                        intentions         platformio-ide-terminal
+                                        linter-pycodestyle atom-terminus
+                                        python-autopep8    split-diff
+                                        script
+                                        tablr
+                                        todo-show
 ```
 
-## To-do list
-
-- [x] Reduce running time by checking before execution.
-- [x] Tab completion profile name.
-- [x] Warning if wrong packages received from profile.
-- [x] Allow to mix multiple profile in one run.
-- [x] Check current profile (maybe you want to start with single profile first).
-- [ ] Finish this README.
+``` powershell
+PS> Get-AtomProfileStatus
+You are on necessary + python
+```
+![Demo](./assets/example-screenshot.png)

@@ -10,10 +10,11 @@ $ColorForAlreadyDisabled = "DarkRed"
 function Write-Table {
     param(
         [Parameter(Mandatory = $true)]
-        [hashtable]$Table
+        [hashtable]
+        $Table
     )
 
-    # Get the maximum item lenghth
+    # Get the maximum item length
     $ItemCounts = @()
     foreach ($item in $Table.values) {
         $ItemCounts += $item.length
@@ -28,7 +29,6 @@ function Write-Table {
         }
         $FinalArray += $FinalObj
     }
-    Write-Output "Result:"
     Write-Output $FinalArray
 }
 
@@ -39,13 +39,15 @@ function GetProfiles {
         $parameterName,
         $wordToComplete
     )
-    $ProfileName = (Get-ChildItem $Path).Name | Where-Object { $_ -like "$wordToComplete*" }
-    return $ProfileName
+    $ProfileNames = (Get-ChildItem $Path).Name | Where-Object { $_ -like "$wordToComplete*" }
+    return $ProfileNames
 }
 
 
 function Get-UniqueContent {
     param(
+        [Parameter(Mandatory = $true)]
+        [string]
         $ProfileName
     )
     return Get-Content -Path ($Path + $ProfileName) |
@@ -56,7 +58,8 @@ function Get-UniqueContent {
 function Get-Subsets {
     param(
         [Parameter(Mandatory = $true)]
-        [array]$Elements
+        [array]
+        $Elements
     )
     $Subsets = @()
     for ($SubsetIndex = 1; $SubsetIndex -lt [math]::Pow(2, $Elements.length); $SubsetIndex++) {
@@ -91,13 +94,13 @@ function Get-AtomProfileStatus {
 
     # Check if no profile is set
     if (!($EnabledPackages)) {
-        Write-Output "Nothing"
+        Write-Host "No package is enabled" -ForegroundColor Red
         return
     }
 
     # Check if all profiles are set
     if (!($DisabledPackages)) {
-        Write-Output "All"
+        Write-Host "All package are enabled" -ForegroundColor Green
         return
     }
 
@@ -132,7 +135,8 @@ function Get-AtomProfileStatus {
         Write-Host $CurrentProfile -ForegroundColor Green
         return
     }
-    Write-Host "You are on no profile set" -ForegroundColor Red
+    Write-Host "You are on " -NoNewline
+    Write-Host "no profile set" -ForegroundColor Red
     return
 }
 
@@ -140,49 +144,52 @@ function Get-AtomProfileStatus {
 function Set-AtomProfile {
     <#
     .SYNOPSIS
-    Set specific Atom profile.
+    Set specific Atom profile(s).
 
     .DESCRIPTION
-    User should reate a <profile> file containing list of expected packages to be enable in 'profile'
-    folder (in script root folder).
-    The script will enable all packages in <profile> file and 'necessary' file.
+    Users should create a file containing a list of expected packages to be enabled in
+    the 'Profiles' folder (in script root folder).
+    The script will enable all packages in the file.
     All the remaining packages will be disabled.
 
     .PARAMETER ProfileNames
-    'All', 'Nothing' or list of <profile> names.
+    'All', 'Nothing' or list of profile name.
 
     .PARAMETER OutputMode
     'Everything', 'BriefOnly' or 'Nothing'.
 
     .INPUTS
     System.String
-        'All', 'Nothing' or list of <profile> names.
+        'All', 'Nothing' or list of profile name.
 
     .OUTPUTS
     None.
 
     .NOTES
     Author: thanhph111
-    Last Edit: 2020-09-28
+    License: MIT
 
     .EXAMPLE
-    PS> Set-AtomProfile -ProfileNames necessary, python
-    The example above enable all packages listed in 'necessary' and 'python' file.
+    PS> Set-AtomProfile -ProfileNames necessary, python -OutputMode Nothing
+    The example above enables all packages listed in 'necessary' and 'python' file silently.
 
     .EXAMPLE
     PS> Set-AtomProfile -ProfileNames Nothing
     The example above disable all installed packages.
 
     .LINK
-    <script directory>\README.md
+    README.md
     #>
 
     param(
         [Parameter(Mandatory = $true, HelpMessage = "Profile's name containing list of packages.")]
-        [string[]]$ProfileNames,
+        [string[]]
+        $ProfileNames,
+
         [Parameter(HelpMessage = "Choose the way you like for output messages.")]
         [ValidateSet("Everything", "BriefOnly", "Nothing")]
-        [string]$OutputMode = "Everything"
+        [string]
+        $OutputMode = "Everything"
     )
 
     # Get all installed packages
@@ -283,11 +290,17 @@ function Set-AtomProfile {
 
     # Write brief table
     if ($OutputMode -ne "Nothing") {
+        Write-Output "Result:"
         Write-Table -Table $Output
     }
 }
 
 
-Register-ArgumentCompleter -CommandName Set-AtomProfile -ParameterName ProfileNames -ScriptBlock $function:GetProfiles
+$RegisterArgumentCompleterParams = @{
+    CommandName   = "Set-AtomProfile"
+    ParameterName = "ProfileNames"
+    ScriptBlock   = $function:GetProfiles
+}
+Register-ArgumentCompleter @RegisterArgumentCompleterParams
 
 Export-ModuleMember -Function Get-AtomProfileStatus, Set-AtomProfile
