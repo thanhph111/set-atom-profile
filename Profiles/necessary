@@ -8,7 +8,7 @@ minimap
 minimap-highlight-selected
 highlight-selected
 
-platformio-ide-terminal
+terminus
 atom-terminus
 
 split-diff
